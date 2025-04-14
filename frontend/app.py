@@ -1,37 +1,23 @@
 import streamlit as st
 import requests
-import numpy as np
 
-st.title("🩺 Medical AI Diagnosis (Demo)")
-use_demo = st.checkbox("Use Demo Vectors", value=True)
+st.title("Medical AI Diagnostic Assistant")
 
-if use_demo:
-    img_emb = np.random.rand(2048).tolist()
-    txt_emb = np.random.rand(768).tolist()
-    lab_vec = np.random.rand(10).tolist()
-    diagnosis = ["pneumonia", "asthma"]
-    indicators = ["infiltrate_xray"]
-    labs = {"WBC": 13000}
-else:
-    st.warning("Custom input uploading not enabled yet.")
-    st.stop()
+img_emb = st.text_area("Image Embedding (2048-dim)", "")
+txt_emb = st.text_area("Text Embedding (768-dim)", "")
+lab_vec = st.text_area("Lab Vector (10-dim)", "")
+diagnosis = st.text_input("Initial Diagnoses (comma-separated)", "")
+labs = st.text_area("Lab Dict (e.g. {\"WBC\": 8.0})", "")
 
-if st.button("🧠 Predict"):
-    data = {
-        "img_emb": img_emb,
-        "txt_emb": txt_emb,
-        "lab_vec": lab_vec,
-        "diagnosis": diagnosis,
-        "indicators": indicators,
-        "labs": labs
+if st.button("Submit"):
+    payload = {
+        "img_emb": list(map(float, img_emb.strip().split())),
+        "txt_emb": list(map(float, txt_emb.strip().split())),
+        "lab_vec": list(map(float, lab_vec.strip().split())),
+        "diagnosis": diagnosis.split(","),
+        "labs": eval(labs),
+        "indicators": []
     }
-    res = requests.post("http://localhost:8000/predict", json=data)
 
-    if res.status_code == 200:
-        output = res.json()
-        st.success(f"Prediction: {'Positive' if output['prediction'] else 'Negative'}")
-        st.write("Confidence:", output["confidence"])
-        st.json(output["rules_triggered"])
-    else:
-        st.error("Prediction failed.")
-
+    res = requests.post("https://your-backend-url.onrender.com/predict", json=payload)
+    st.json(res.json())
