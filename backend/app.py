@@ -1,16 +1,14 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import torch
-import numpy as np
-from modules.fusion.fusion_model import FusionModel
+import requests
 from modules.logic.apply_rules import RuleEngine
 
 app = FastAPI()
-model = FusionModel()
-model.load_state_dict(torch.load("models/fusion_model.pth", map_location=torch.device("cpu")))
-model.eval()
-
 rule_engine = RuleEngine()
+
+# Store your API key here (you can also read from env var)
+LAMA_API_KEY = "1015506f-fb94-4ca4-9f07-af03ea3b1ca0"
+LAMA_API_URL = "https://lama-api.com/predict"
 
 class PatientInput(BaseModel):
     img_emb: list
@@ -22,20 +20,28 @@ class PatientInput(BaseModel):
 
 @app.post("/predict")
 def predict(input: PatientInput):
-    x_img = torch.tensor([input.img_emb], dtype=torch.float32)
-    x_txt = torch.tensor([input.txt_emb], dtype=torch.float32)
-    x_lab = torch.tensor([input.lab_vec], dtype=torch.float32)
+    # Prepare data for Lama API
+    lama_payload = {
+        "img_emb": input.img_emb,
+        "txt_emb": input.txt_emb,
+        "lab_vec": input.lab_vec
+    }
 
-    with torch.no_grad():
-        output = model(x_img, x_txt, x_lab)
-        prob = torch.sigmoid(output).item()
-        label = int(prob > 0.5)
+    headers = {
+        "Authorization": f"Bearer {LAMA_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
+    response = requests.post(LAMA_API_URL, json=lama_payload, headers=headers)
+
+    if response.status_code != 200:
+        return {"error": "Failed to get response from Lama API", "status": response.status_code}
+
+    lama_result = response.json()
     rules = rule_engine.run_all(input.diagnosis, input.labs, input.indicators)
 
     return {
-        "prediction": label,
-        "confidence": round(prob, 4),
+        "prediction": lama_result["prediction"],
+        "confidence": round(lama_result["confidence"], 4),
         "rules_triggered": rules
     }
-
