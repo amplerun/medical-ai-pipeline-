@@ -1,0 +1,14 @@
+{
+  "conflicting_diagnoses": [
+    {"rule": "asthma AND copd", "action": "flag_review"}
+  ],
+  "lab_rules": [
+    {"lab": "WBC", "min": 11000, "message": "High WBC – possible infection"}
+  ],
+  "requirements": [
+    {
+      "requires": ["infiltrate_xray", "WBC"],
+      "message": "Pneumonia requires X-ray infiltrate + high WBC"
+    }
+  ]
+}
