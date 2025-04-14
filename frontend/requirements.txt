@@ -3,3 +3,9 @@ requests
 numpy
 fastapi
 requests
+fastapi
+uvicorn
+torch
+numpy
+pydantic
+streamlit
